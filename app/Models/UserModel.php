@@ -24,12 +24,34 @@ class UserModel extends Model
     protected $validationRules      = [
         'nama' => 'required',
         'username' => 'required',
-        'email' => 'required|valid_email|is_unique[user.email]',
+        'email' => 'required|valid_email|is_unique[user.email,id_user,{id_user}]',
         'password' => 'required|min_length[8]',
         'no_hp' => 'required',
         'alamat' => 'required',
     ];
-    protected $validationMessages   = [];
+    protected $validationMessages = [
+        'nama' => [
+            'required' => 'Nama harus diisi',
+        ],
+        'username' => [
+            'required' => 'Username harus diisi',
+        ],
+        'email' => [
+            'required' => 'Email harus diisi',
+            'valid_email' => 'Email tidak valid',
+            'is_unique' => 'Email sudah terdaftar',
+        ],
+        'password' => [
+            'required' => 'Password harus diisi',
+            'min_length' => 'Password harus terdiri dari setidaknya 8 karakter',
+        ],
+        'no_hp' => [
+            'required' => 'Nomor HP harus diisi',
+        ],
+        'alamat' => [
+            'required' => 'Alamat harus diisi',
+        ],
+    ];
     protected $skipValidation       = false;
     protected $cleanValidationRules = true;
 
@@ -44,21 +66,19 @@ class UserModel extends Model
     protected $beforeDelete   = [];
     protected $afterDelete    = [];
 
+    // Define relationships
+    public function pemasukan()
+    {
+        return $this->hasMany('App\Models\PemasukanModel', 'id_user', 'id_user');
+    }
 
-    // Relationships
-    // Example: Assume a relationship with PemasukanModel
-    protected $hasMany = [
-        'pemasukan' => [
-            'model' => 'App\Models\PemasukanModel',
-            'foreign_key' => 'id_user',
-        ],
-        'pengeluaran' => [
-            'model' => 'App\Models\PengeluaranModel',
-            'foreign_key' => 'id_user',
-        ],
-        'laporan' => [
-            'model' => 'App\Models\LaporanModel',
-            'foreign_key' => 'id_user',
-        ],
-    ];
+    public function pengeluaran()
+    {
+        return $this->hasMany('App\Models\PengeluaranModel', 'id_user', 'id_user');
+    }
+
+    public function laporan()
+    {
+        return $this->hasMany('App\Models\LaporanModel', 'id_user', 'id_user');
+    }
 }

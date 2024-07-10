@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use CodeIgniter\RESTful\ResourceController;
+use App\Models\UserModel;
 
 class User extends ResourceController
 {
@@ -16,25 +17,41 @@ class User extends ResourceController
 
     public function show($id_user = null)
     {
-        if (!$this->model->find($id_user)) {
-            return $this->fail('Data tidak ditemukan');
+        $user = $this->model->find($id_user);
+        if (!$user) {
+            return $this->failNotFound('Data tidak ditemukan');
         }
-        return $this->respond($this->model->find($id_user));
+        return $this->respond($user);
     }
 
     public function create()
     {
-        $data = $this->request->getPost();
-        $user = new \App\Entities\User();
-        $user->fill($data);
+        $rules = [
+            'nama' => 'required',
+            'username' => 'required',
+            'email' => 'required|valid_email|is_unique[user.email]',
+            'password' => 'required|min_length[8]',
+            'no_hp' => 'required',
+            'alamat' => 'required'
+        ];
 
-        if (!$this->validate($this->model->validationRules)) {
+        if (!$this->validate($rules)) {
             return $this->fail($this->validator->getErrors());
         }
 
-        if ($this->model->save($user)) {
-            return $this->respondCreated($data);
-        }
+        $data = [
+            'nama' => $this->request->getVar('nama'),
+            'username' => $this->request->getVar('username'),
+            'email' => $this->request->getVar('email'),
+            'password' => password_hash($this->request->getVar('password'), PASSWORD_DEFAULT),
+            'no_hp' => $this->request->getVar('no_hp'),
+            'alamat' => $this->request->getVar('alamat'),
+        ];
+
+        $userModel = new UserModel();
+        $userModel->insert($data);
+
+        return $this->respondCreated(['status' => 201, 'message' => 'User created successfully']);
     }
 
     public function update($id_user = null)
@@ -43,17 +60,16 @@ class User extends ResourceController
         $data['id_user'] = $id_user;
 
         if (!$this->model->find($id_user)) {
-            return $this->fail('Data tidak ditemukan');
+            return $this->failNotFound('Data tidak ditemukan');
         }
-
-        $user = new \App\Entities\User();
-        $user->fill($data);
 
         if (!$this->validate($this->model->validationRules)) {
             return $this->fail($this->validator->getErrors());
         }
 
-        if ($this->model->save($user)) {
+        $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+
+        if ($this->model->save($data)) {
             return $this->respondUpdated($data);
         }
     }
@@ -61,11 +77,43 @@ class User extends ResourceController
     public function delete($id_user = null)
     {
         if (!$this->model->find($id_user)) {
-            return $this->fail('Data tidak ditemukan');
+            return $this->failNotFound('Data tidak ditemukan');
         }
 
         if ($this->model->delete($id_user)) {
-            return $this->respondDeleted("Data dengan id user " . $id_user . " berhasil dihapus");
+            return $this->respondDeleted(['status' => 200, 'message' => "Data dengan id user $id_user berhasil dihapus"]);
         }
+    }
+
+    public function login()
+    {
+        $rules = [
+            'email' => 'required|valid_email',
+            'password' => 'required'
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->fail($this->validator->getErrors());
+        }
+
+        $email = $this->request->getVar('email');
+        $password = $this->request->getVar('password');
+
+        $userModel = new UserModel();
+        $user = $userModel->where('email', $email)->first();
+
+        if (!$user) {
+            return $this->failNotFound('Email tidak ditemukan');
+        }
+
+        if (!password_verify($password, $user->password)) {
+            return $this->fail('Password salah');
+        }
+
+        return $this->respond([
+            'status' => 200,
+            'message' => 'Login berhasil',
+            'data' => $user // Exclude sensitive data in a real application
+        ]);
     }
 }

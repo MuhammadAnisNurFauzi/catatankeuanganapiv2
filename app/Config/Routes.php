@@ -9,4 +9,5 @@ $routes->resource('pemasukan');
 $routes->resource('pengeluaran');
 $routes->resource('transaksi');
 $routes->resource('laporan');
-$routes->post('/login', 'AuthController::login');
+$routes->post('/user', 'User::createUser');
+$routes->post('/user/login', 'User::login');
